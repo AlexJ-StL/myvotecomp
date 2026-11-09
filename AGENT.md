@@ -40,15 +40,13 @@ Dependencies are declared in `pyproject.toml` (`pandas`, `pydantic`, `pydantic-s
 
 | Command | What it does |
 | :-- | :-- |
-| `uv run python -m ingest.elections` | Download/parse candidate vote counts for House, Senate, and Governor races |
-| `uv run python -m ingest.census` | Ingest Census ACS total & working-age population statistics via Census API |
-| `uv run python -m ingest.voter_reg` | Parse EAC EAVS voter registration counts & party breakdowns |
-| `uv run python -m pipeline` | Execute full pipeline: ingest, join, load to PostgreSQL, and export sanitized CSV/Parquet |
-| `uv run ruff check .` | Lint verification using Ruff |
-| `uv run ruff format --check .` | Formatting check |
-| `uv run ruff check --fix .` | Apply automatic lint fixes — run before committing |
-| `uv run pytest` | `Run the complete TDD test suite |
-| `uv run pytest --cov=src` | Run test suite with line and branch coverage report |
+| `uv sync` | Install project and development dependencies |
+| `uv run pytest` | Run the test suite |
+| `uv run ruff check .` | Run Ruff lint checks |
+| `uv run ruff format --check .` | Check Ruff formatting |
+| `uv run ruff check --fix .` | Apply safe automatic lint fixes |
+
+The ingestion modules currently expose Python functions; they do not define `python -m ingest.*` commands. Election CSV parsing and registration row normalization are library functions, not source downloaders. `pipeline.py` provides join, persistence, and export functions but is not a standalone end-to-end CLI.
 
 ---
 
@@ -58,10 +56,10 @@ Dependencies are declared in `pyproject.toml` (`pandas`, `pydantic`, `pydantic-s
 | :-- | :-- |
 | `config.py` | Central pydantic-settings configuration loader; exports OpenRouter openai.OpenAI client builder and DB connection settings. |
 | `models.py` | Pydantic and SQLAlchemy schemas for CandidateVote, DemographicRecord, and VoterRegistrationRecord. |
-| `ingest/elections.py` | Ingests MEDSL / FEC raw CSV data, cleans party labels, and aggregates candidate vote counts by race/party. |
-| `ingest/census.py` | Queries U.S. Census ACS API for total population (B01001_001E) and working-age populations (18–64 / 18+). |
-| `ingest/voter_reg.py` | Parses state-level voter registration statistics and maps party-affiliated vs. open-registration states. |
-| `pipeline.py` | Single entry point for dataset joining on (state_fips, year), PostgreSQL persistence, and sanitized file export. |
+| `ingest/elections.py` | Parses caller-supplied election CSV rows, normalizes party labels, and aggregates candidate votes by race/party; no MEDSL/FEC download is implemented. |
+| `ingest/census.py` | Queries the U.S. Census ACS 5-year API for total population (B01001_001E) and derives working-age populations (18–64 / 18+). |
+| `ingest/voter_reg.py` | Normalizes caller-supplied EAVS-like registration mappings and preserves uncollected party counts as null; no source-file parser/download is implemented. |
+| `pipeline.py` | Exposes functions for joining on (state_fips, year), transactional PostgreSQL persistence, and allowlisted CSV/Parquet export; no standalone command-line entry point. |
 | `tests/` | Comprehensive test suite mirroring module structure under TDD principles. |
 
 ---
