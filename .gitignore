@@ -15,3 +15,4 @@ dist/
 *.egg-info/
 data/raw/
 data/processed/
+.coverage
