@@ -100,7 +100,10 @@ def main() -> None:
         settings = get_settings()
         api_key = settings.CENSUS_API_KEY.get_secret_value()
     except Exception as e:
-        print(f"Error loading CENSUS_API_KEY from environment/settings: {e}", file=sys.stderr)
+        print(
+            f"Error loading CENSUS_API_KEY from environment/settings: {e}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     print(f"Fetching Census ACS demographics for year {args.year}...")
