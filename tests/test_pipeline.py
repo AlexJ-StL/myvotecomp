@@ -1,8 +1,13 @@
+from types import SimpleNamespace
+from typing import cast
+
 import pandas as pd
 import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
+import pipeline as pipeline_module
+from config import Settings
 from models import (
     Base,
     CandidateVote,
@@ -14,7 +19,7 @@ from models import (
     VoterRegistrationRecord,
     VoterRegistrationRecordData,
 )
-from pipeline import export_dataset, join_datasets, run_pipeline
+from pipeline import build_engine, export_dataset, join_datasets, run_pipeline
 
 
 def input_records() -> tuple[
@@ -166,3 +171,48 @@ def test_export_drops_columns_outside_the_public_data_schema(tmp_path) -> None:
     assert "local_path" not in exported.columns
     assert exported.loc[0, "state_fips"] == "01"
     assert exported.loc[0, "candidate_votes"] == 100
+
+
+def test_export_rejects_unsupported_file_extensions(tmp_path) -> None:
+    with pytest.raises(ValueError, match=r"\.csv or \.parquet"):
+        export_dataset(pd.DataFrame({"state_fips": ["01"]}), tmp_path / "export.json")
+
+
+def test_build_engine_uses_given_settings_and_enables_connection_health_checks(
+    monkeypatch,
+) -> None:
+    calls: list[tuple[object, dict[str, object]]] = []
+
+    def fake_create_engine(url, **kwargs):
+        calls.append((url, kwargs))
+        return "engine"
+
+    settings = cast(
+        Settings,
+        SimpleNamespace(database_url="postgresql://synthetic.invalid/elections"),
+    )
+    monkeypatch.setattr(pipeline_module, "create_engine", fake_create_engine)
+
+    engine = build_engine(settings)
+
+    assert engine == "engine"
+    assert calls == [(settings.database_url, {"pool_pre_ping": True})]
+
+
+def test_build_engine_loads_settings_when_none_are_passed(monkeypatch) -> None:
+    calls = []
+    settings = cast(
+        Settings,
+        SimpleNamespace(database_url="postgresql://synthetic.invalid/elections"),
+    )
+    monkeypatch.setattr(pipeline_module, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        pipeline_module,
+        "create_engine",
+        lambda url, **kwargs: calls.append((url, kwargs)) or "engine",
+    )
+
+    result = build_engine()
+
+    assert result == "engine"
+    assert calls == [(settings.database_url, {"pool_pre_ping": True})]

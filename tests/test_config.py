@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+import config
+
 DATABASE_ENV = (
     "POSTGRES_DB",
     "POSTGRES_USER",
@@ -150,3 +152,40 @@ def test_database_url_preserves_special_password_characters_without_displaying_i
     assert database_url.password == password
     assert database_url.username == "postgres"
     assert password not in str(database_url)
+
+
+def test_openrouter_client_uses_configured_key_endpoint_and_forwarded_options(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clear_settings_env(monkeypatch)
+    set_valid_settings_env(monkeypatch)
+    captured: dict[str, object] = {}
+
+    class FakeOpenAI:
+        def __init__(self, **kwargs: object) -> None:
+            captured.update(kwargs)
+
+    monkeypatch.setattr(config, "OpenAI", FakeOpenAI)
+
+    client = create_settings().get_openrouter_client(timeout=7.5)
+
+    assert isinstance(client, FakeOpenAI)
+    assert captured["base_url"] == "https://openrouter.ai/api/v1"
+    assert captured["api_key"] == "safe-test-openrouter-key"
+    assert captured["timeout"] == 7.5
+    assert captured["default_headers"] == {
+        "HTTP-Referer": "https://github.com/local-election-pipeline",
+        "X-Title": "Election Data Pipeline",
+    }
+
+
+def test_get_settings_reads_current_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    clear_settings_env(monkeypatch)
+    set_valid_settings_env(monkeypatch)
+
+    settings = config.get_settings()
+
+    assert settings.POSTGRES_DB == "election_db"
+    assert settings.CENSUS_API_KEY.get_secret_value() == "safe-test-census-key"

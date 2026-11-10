@@ -90,6 +90,28 @@ def test_demographic_and_registration_metrics_validate_nonnegative_counts() -> N
         )
 
 
+def test_demographic_populations_must_be_consistently_ordered() -> None:
+    with pytest.raises(ValidationError, match="working-age population"):
+        DemographicRecordData(
+            state_fips="01",
+            year=2024,
+            total_population=100,
+            working_age_18_64=81,
+            population_18_plus=80,
+        )
+
+    with pytest.raises(
+        ValidationError, match=r"population age 18\+ cannot exceed total"
+    ):
+        DemographicRecordData(
+            state_fips="01",
+            year=2024,
+            total_population=100,
+            working_age_18_64=70,
+            population_18_plus=101,
+        )
+
+
 def test_sqlalchemy_schema_enforces_vote_and_office_constraints() -> None:
     engine = create_engine("sqlite://")
     Base.metadata.create_all(engine)

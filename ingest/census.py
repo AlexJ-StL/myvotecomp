@@ -104,10 +104,10 @@ def main() -> None:
         sys.exit(1)
 
     print(f"Fetching Census ACS demographics for year {args.year}...")
-    df = fetch_census_demographics(year=args.year, api_key=api_key)
-    print(f"Successfully retrieved demographic records for {len(df)} states.")
+    records = fetch_census_demographics(year=args.year, api_key=api_key)
+    print(f"Successfully retrieved demographic records for {len(records)} states.")
     print("\nSample Output:")
-    print(df.head())
+    print(records[:5])
 
 
 if __name__ == "__main__":

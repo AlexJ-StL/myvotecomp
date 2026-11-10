@@ -64,6 +64,7 @@ _STATE_NAMES = {
     re.sub(r"[^A-Z0-9]", "", name.upper()): fips for fips, name in _STATES.values()
 }
 _STATE_CODES = {code: values[0] for code, values in _STATES.items()}
+_STATE_FIPS_CODES = frozenset(fips for fips, _name in _STATES.values())
 
 
 def normalize_state_fips(value: object) -> str:
@@ -71,7 +72,7 @@ def normalize_state_fips(value: object) -> str:
     text = str(value).strip()
     if text.isdigit():
         fips = text.zfill(2)
-        if len(fips) == 2:
+        if len(fips) == 2 and fips in _STATE_FIPS_CODES:
             return fips
     compact = re.sub(r"[^A-Z0-9]", "", text.upper())
     if compact in _STATE_CODES:

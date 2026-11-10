@@ -123,10 +123,10 @@ def main() -> None:
         sys.exit(1)
 
     print(f"Processing election data from: {file_path}...")
-    df = process_election_csv(str(file_path))
-    print(f"Successfully processed {len(df)} candidate vote records.")
+    records = process_election_csv(str(file_path))
+    print(f"Successfully processed {len(records)} candidate vote records.")
     print("\nSample Output:")
-    print(df.head())
+    print(records[:5])
 
 
 if __name__ == "__main__":
