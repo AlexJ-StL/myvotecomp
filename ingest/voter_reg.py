@@ -1,7 +1,11 @@
 """Normalization for state voter-registration survey records."""
 
+import argparse
+import json
+import sys
 from collections.abc import Iterable, Mapping
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 from ingest.geography import normalize_state_fips
 from models import VoterRegistrationRecordData
@@ -121,3 +125,42 @@ def normalize_registration_records(
             )
         )
     return normalized
+
+
+def main() -> None:
+    """CLI entry point for normalizing voter registration inputs."""
+    parser = argparse.ArgumentParser(
+        description="Normalize voter registration JSON records."
+    )
+    parser.add_argument(
+        "--file",
+        "-f",
+        type=str,
+        required=True,
+        help="Path to a JSON file containing voter registration records.",
+    )
+    args = parser.parse_args()
+
+    file_path = Path(args.file)
+    if not file_path.exists():
+        print(f"Error: File '{file_path}' does not exist.", file=sys.stderr)
+        sys.exit(1)
+
+    with file_path.open(encoding="utf-8") as file:
+        raw_records = json.load(file)
+
+    if not isinstance(raw_records, list) or any(
+        not isinstance(record, dict) for record in raw_records
+    ):
+        parser.error("JSON input must be an array of registration objects.")
+
+    print(f"Normalizing voter registration data from: {file_path}...")
+    normalized_records = normalize_registration_records(raw_records)
+    print(f"Successfully normalized {len(normalized_records)} registration records.")
+    print("\nSample Output:")
+    for record in normalized_records[:5]:
+        print(record.model_dump())
+
+
+if __name__ == "__main__":
+    main()

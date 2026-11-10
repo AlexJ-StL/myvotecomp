@@ -1,4 +1,9 @@
-from ingest.voter_reg import normalize_registration_records
+import json
+import sys
+
+import pytest
+
+from ingest.voter_reg import main, normalize_registration_records
 
 
 def test_partisan_registration_counts_are_parsed_and_standardized() -> None:
@@ -52,6 +57,46 @@ def test_open_registration_keeps_uncollected_party_counts_null() -> None:
     assert record.republican_registrants is None
     assert record.democrat_registrants is None
     assert record.other_registrants is None
+
+
+def test_cli_prints_sample_records(tmp_path, monkeypatch, capsys) -> None:
+    input_path = tmp_path / "registration.json"
+    input_path.write_text(
+        json.dumps(
+            [
+                {
+                    "state": "Alabama",
+                    "year": 2024,
+                    "registered_voters": 100,
+                    "registration_type": "open",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(sys, "argv", ["voter_reg", "--file", str(input_path)])
+
+    main()
+
+    output = capsys.readouterr().out
+    assert "Successfully normalized 1 registration records." in output
+    assert "state_fips" in output
+    assert "'01'" in output
+
+
+def test_cli_rejects_json_that_is_not_an_array(tmp_path, monkeypatch, capsys) -> None:
+    input_path = tmp_path / "registration.json"
+    input_path.write_text(json.dumps({"state": "Alabama"}), encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["voter_reg", "--file", str(input_path)])
+
+    with pytest.raises(SystemExit) as exc_info:
+        main()
+
+    assert exc_info.value.code == 2
+    assert (
+        "JSON input must be an array of registration objects."
+        in capsys.readouterr().err
+    )
 
 
 def test_missing_party_breakdown_is_not_coerced_to_zero() -> None:

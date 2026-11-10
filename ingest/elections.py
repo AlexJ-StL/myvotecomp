@@ -1,6 +1,8 @@
 """CSV ingestion and party aggregation for state election results."""
 
+import argparse
 import csv
+import sys
 from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -35,11 +37,7 @@ def _normalize_office(value: object) -> ElectionOffice | None:
 
 
 def _row_value(row: dict[str, str], *names: str) -> str:
-    normalized = {
-        key.strip().lower().replace(" ", "_"): value
-        for key, value in row.items()
-        if key
-    }
+    normalized = {key.strip().lower().replace(" ", "_"): value for key, value in row.items() if key}
     for name in names:
         value = normalized.get(name)
         if value is not None:
@@ -53,18 +51,12 @@ def _parse_votes(value: str) -> int:
     except (InvalidOperation, AttributeError) as exc:
         raise ValueError(f"Invalid candidate vote count: {value!r}") from exc
     if not amount.is_finite() or amount < 0 or amount != amount.to_integral_value():
-        raise ValueError(
-            f"Candidate vote count must be a non-negative integer: {value!r}"
-        )
+        raise ValueError(f"Candidate vote count must be a non-negative integer: {value!r}")
     return int(amount)
 
 
 def _district(row: dict[str, str]) -> str:
-    normalized = {
-        key.strip().lower().replace(" ", "_"): value
-        for key, value in row.items()
-        if key
-    }
+    normalized = {key.strip().lower().replace(" ", "_"): value for key, value in row.items() if key}
     value = normalized.get("district", normalized.get("congressional_district", ""))
     value = value.strip()
     return value[:-2] if value.endswith(".0") else value
@@ -84,22 +76,16 @@ def process_election_csv(source: str | Path | TextIO) -> list[CandidateVoteData]
 
 
 def _aggregate_rows(rows: csv.DictReader) -> list[CandidateVoteData]:
-    totals: defaultdict[tuple[str, int, ElectionOffice, str, VoteParty], int] = (
-        defaultdict(int)
-    )
+    totals: defaultdict[tuple[str, int, ElectionOffice, str, VoteParty], int] = defaultdict(int)
     for row in rows:
         office = _normalize_office(_row_value(row, "office"))
         if office is None:
             continue
-        state_fips = normalize_state_fips(
-            _row_value(row, "state_fips", "state", "state_abbreviation")
-        )
+        state_fips = normalize_state_fips(_row_value(row, "state_fips", "state", "state_abbreviation"))
         year = int(_row_value(row, "year"))
         party = normalize_party(_row_value(row, "party"))
         district = _district(row)
-        votes = _parse_votes(
-            _row_value(row, "candidatevotes", "candidate_votes", "votes")
-        )
+        votes = _parse_votes(_row_value(row, "candidatevotes", "candidate_votes", "votes"))
         totals[(state_fips, year, office, district, party)] += votes
 
     return [
@@ -115,3 +101,33 @@ def _aggregate_rows(rows: csv.DictReader) -> list[CandidateVoteData]:
             totals.items(), key=lambda item: tuple(str(part) for part in item[0])
         )
     ]
+
+
+def main() -> None:
+    """CLI entry point for processing local election CSV files."""
+    parser = argparse.ArgumentParser(
+        description="Ingest and normalize raw election CSV data (House, Senate, Governor)."
+    )
+    parser.add_argument(
+        "--file",
+        "-f",
+        type=str,
+        required=True,
+        help="Path to the election CSV file.",
+    )
+    args = parser.parse_args()
+
+    file_path = Path(args.file)
+    if not file_path.exists():
+        print(f"Error: File '{file_path}' does not exist.", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Processing election data from: {file_path}...")
+    df = process_election_csv(str(file_path))
+    print(f"Successfully processed {len(df)} candidate vote records.")
+    print("\nSample Output:")
+    print(df.head())
+
+
+if __name__ == "__main__":
+    main()
