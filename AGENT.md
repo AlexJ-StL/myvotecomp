@@ -45,7 +45,7 @@ Dependencies are declared in `pyproject.toml` (`pandas`, `pydantic`, `pydantic-s
 | :-- | :-- | :-- |
 | `uv run python -m ingest.elections` | `--file` / `-f` (path, required) | Ingests and normalizes raw election CSV data (House, Senate, Governor), aggregating party totals. |
 | `uv run python -m ingest.census` | `--year` / `-y` (int, default: 2024) | Fetches state total and working-age population statistics from the Census ACS 5-Year API using `CENSUS_API_KEY`. |
-| `uv run python -m ingest.voter_reg` | `--file` / `-f` (path, required) | Parses and normalizes a JSON file of state-level voter registration counts & party breakdowns. |
+| `uv run python -m ingest.voter_reg` | `--file` / `-f` (path, required), `--year` / `-y` (default: 2024), `--eavs` (force EAVS CSV parsing) | Normalizes a JSON registration array or aggregates an EAVS CSV by state. CSV extensions are auto-detected. |
 | `uv run ruff check .` | — | Lint verification using Ruff. |
 | `uv run ruff format --check .` | — | Formatting check. |
 | `uv run ruff check --fix .` | — | Apply automatic lint fixes — run before committing. |
@@ -69,8 +69,9 @@ Dependencies are declared in `pyproject.toml` (`pandas`, `pydantic`, `pydantic-s
 
 1. Voter Registration Ingestion (`ingest.voter_reg`):
 
-- Flags: `--file` or `-f` (Path to voter registration JSON file).
+- Flags: `--file` or `-f` (JSON or EAVS CSV path); `--year` or `-y` (EAVS year, default 2024); optional `--eavs` forces EAVS parsing.
 - Example: `uv run python -m ingest.voter_reg --file data/raw/voter_registration.json`
+- EAVS example: `uv run python -m ingest.voter_reg --file data/raw/eavs.csv --year 2024`
 
 ---
 
@@ -82,7 +83,7 @@ Dependencies are declared in `pyproject.toml` (`pandas`, `pydantic`, `pydantic-s
 | `models.py` | Pydantic and SQLAlchemy schemas for `CandidateVote`, `DemographicRecord`, and `VoterRegistrationRecord`. |
 | `ingest/elections.py` | Ingests MEDSL / FEC raw CSV data, cleans party labels, aggregates candidate vote counts by race/party, and provides a standalone CLI parser. |
 | `ingest/census.py` | Queries U.S. Census ACS API for total population (`B01001_001E`) and working-age populations (18–64 / 18+), providing a standalone CLI parser. |
-| `ingest/voter_reg.py` | Parses state-level voter registration statistics, maps party-affiliated vs. open-registration states, and provides a standalone CLI parser. |
+| `ingest/voter_reg.py` | Normalizes registration mappings and EAVS CSV data, maps party-affiliated vs. open-registration states, and provides a standalone CLI parser. |
 | `pipeline.py` | Functions for joining datasets on (`state_fips`, `year`), PostgreSQL persistence, and allowlisted file export; there is no `python -m pipeline` CLI. |
 | `tests/` | Comprehensive test suite mirroring module structure under TDD principles. |
 

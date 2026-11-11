@@ -53,7 +53,7 @@ The Pydantic contract checks `working_age_18_64 <= population_18_plus <= total_p
 
 ### Voter registration — `voter_registration_records`
 
-`normalize_registration_records()` accepts an iterable of mappings and returns validated state/year registration records. It does not read spreadsheets, download EAVS files, or independently determine the authoritative source year.
+`normalize_registration_records()` accepts an iterable of mappings and returns validated state/year registration records. `parse_eavs_csv(file_path, year, ...)` reads an EAVS-style CSV, aggregates jurisdiction rows by state, and returns a DataFrame of those normalized records. Its default columns are `State`, `A1a` (total), `A1b` (Democratic), `A1c` (Republican), and `A1d` (other); optional column arguments support files with different headers. Missing party counts remain null, invalid state identifiers and groups without a usable total are skipped, and aggregated counts are validated as non-negative integers. Neither function downloads source files or independently determines the authoritative source year.
 
 | Field | Meaning |
 | --- | --- |

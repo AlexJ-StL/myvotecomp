@@ -7,6 +7,8 @@ from collections.abc import Iterable, Mapping
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
+import pandas as pd
+
 from ingest.geography import normalize_state_fips
 from models import VoterRegistrationRecordData
 
@@ -120,15 +122,100 @@ def normalize_registration_records(
     return normalized
 
 
+def parse_eavs_csv(
+    file_path: str,
+    year: int,
+    state_col: str = "State",
+    total_reg_col: str = "A1a",
+    dem_col: str | None = "A1b",
+    rep_col: str | None = "A1c",
+    ind_col: str | None = "A1d",
+) -> pd.DataFrame:
+    """Parse raw EAC EAVS or state voter registration CSV files into normalized records.
+
+    EAVS (Election Administration and Voting Survey) survey variables typically map to:
+    - A1a: Total registered voters (active)
+    - A1b: Total registered Democrats (if collected)
+    - A1c: Total registered Republicans (if collected)
+    - A1d: Total registered Independents / Unaffiliated / Third Party (if collected)
+
+    States operating open registration (without party affiliation) will leave party
+    breakdown columns empty or missing, which are parsed cleanly as NULL.
+    """
+    path = Path(file_path)
+    if not path.exists():
+        raise FileNotFoundError(f"EAVS file not found at: {file_path}")
+
+    # Read CSV, treating standard missing markers as NaNs
+    raw_df = pd.read_csv(path, dtype=str, keep_default_na=True)
+
+    # Required column validation
+    if state_col not in raw_df.columns:
+        raise KeyError(f"Required state column '{state_col}' not found in CSV headers.")
+    if total_reg_col not in raw_df.columns:
+        raise KeyError(f"Required total registration column '{total_reg_col}' not found in CSV headers.")
+
+    normalized_records: list[dict[str, object]] = []
+
+    # Group by state to aggregate jurisdiction/county level EAVS rows up to state level
+    grouped = raw_df.groupby(state_col)
+
+    for state_val, group in grouped:
+        try:
+            fips = normalize_state_fips(str(state_val))
+        except ValueError:
+            # Skip rows with unknown state identifiers.
+            continue
+
+        # Convert numeric columns safely, treating uncollected or invalid values as NaN
+        total_reg = pd.to_numeric(group[total_reg_col], errors="coerce").sum(min_count=1)
+
+        # If total registration is missing or invalid, skip the state entry
+        if pd.isna(total_reg):
+            continue
+
+        dem_reg = pd.to_numeric(group[dem_col], errors="coerce").sum(min_count=1) if dem_col in group.columns else None
+        rep_reg = pd.to_numeric(group[rep_col], errors="coerce").sum(min_count=1) if rep_col in group.columns else None
+        ind_reg = pd.to_numeric(group[ind_col], errors="coerce").sum(min_count=1) if ind_col in group.columns else None
+
+        record_dict = {
+            "state_fips": fips,
+            "year": year,
+            "registered_voters": _parse_count(total_reg, "registered_voters", required=True),
+            "democrat_registrants": (_parse_count(dem_reg, "democrat_registrants") if pd.notna(dem_reg) else None),
+            "republican_registrants": (_parse_count(rep_reg, "republican_registrants") if pd.notna(rep_reg) else None),
+            "other_registrants": (_parse_count(ind_reg, "other_registrants") if pd.notna(ind_reg) else None),
+        }
+
+        validated_record = normalize_registration_records([record_dict])[0]
+        normalized_records.append(validated_record.model_dump())
+
+    return pd.DataFrame(normalized_records)
+
+
 def main() -> None:
-    """CLI entry point for normalizing voter registration inputs."""
-    parser = argparse.ArgumentParser(description="Normalize voter registration JSON records.")
+    """CLI entry point for normalizing voter registration JSON or EAVS CSV inputs."""
+    parser = argparse.ArgumentParser(
+        description="Normalize voter registration records from EAVS CSV or raw JSON inputs."
+    )
     parser.add_argument(
         "--file",
         "-f",
         type=str,
         required=True,
-        help="Path to a JSON file containing voter registration records.",
+        help="Path to a JSON file or EAVS CSV file containing registration records.",
+    )
+    parser.add_argument(
+        "--year",
+        "-y",
+        type=int,
+        default=2024,
+        help="Election year for EAVS CSV parsing (default: 2024).",
+    )
+    parser.add_argument(
+        "--eavs",
+        action="store_true",
+        help="Parse input file using the EAVS CSV format parser instead of JSON array.",
     )
     args = parser.parse_args()
 
@@ -137,18 +224,24 @@ def main() -> None:
         print(f"Error: File '{file_path}' does not exist.", file=sys.stderr)
         sys.exit(1)
 
-    with file_path.open(encoding="utf-8") as file:
-        raw_records = json.load(file)
+    print(f"Processing registration data from: {file_path}...")
 
-    if not isinstance(raw_records, list) or any(not isinstance(record, dict) for record in raw_records):
-        parser.error("JSON input must be an array of registration objects.")
+    if args.eavs or file_path.suffix.lower() == ".csv":
+        records = parse_eavs_csv(str(file_path), year=args.year)
+        print(f"Successfully normalized {len(records)} voter registration state records.")
+        print("\nSample Output:")
+        print(records.head())
+    else:
+        with file_path.open(encoding="utf-8") as file:
+            raw_records = json.load(file)
+        if not isinstance(raw_records, list) or any(not isinstance(record, dict) for record in raw_records):
+            parser.error("JSON input must be an array of registration objects.")
 
-    print(f"Normalizing voter registration data from: {file_path}...")
-    normalized_records = normalize_registration_records(raw_records)
-    print(f"Successfully normalized {len(normalized_records)} registration records.")
-    print("\nSample Output:")
-    for record in normalized_records[:5]:
-        print(record.model_dump())
+        normalized_records = normalize_registration_records(raw_records)
+        print(f"Successfully normalized {len(normalized_records)} registration records.")
+        print("\nSample Output:")
+        for record in normalized_records[:5]:
+            print(record.model_dump())
 
 
 if __name__ == "__main__":

@@ -88,7 +88,7 @@ joined = run_pipeline(
 print(joined.head())
 ```
 
-`process_election_csv()` accepts a path or open text stream. It expects a CSV with fields corresponding to `office`, `year`, `party`, vote count (`candidatevotes`, `candidate_votes`, or `votes`), and geography (`state_fips`, `state`, or `state_abbreviation`). `district` is optional. Unsupported offices are skipped. Registration normalization accepts an iterable of mappings; this repository does not include a source-specific EAVS file reader.
+`process_election_csv()` accepts a path or open text stream. It expects a CSV with fields corresponding to `office`, `year`, `party`, vote count (`candidatevotes`, `candidate_votes`, or `votes`), and geography (`state_fips`, `state`, or `state_abbreviation`). `district` is optional. Unsupported offices are skipped. Registration normalization accepts an iterable of mappings; `parse_eavs_csv()` also aggregates standard EAVS CSV rows by state. The repository does not download election or registration source files.
 
 For individual function signatures and source-field details, see [Data contracts and methodology](docs/data-contracts.md).
 
@@ -102,7 +102,7 @@ uv run python -m ingest.census --year 2024
 uv run python -m ingest.voter_reg --file data/raw/voter_registration.json
 ```
 
-The election command reads a local CSV, the registration command reads a JSON array of record objects, and the Census command fetches ACS data using `CENSUS_API_KEY`. The Census year defaults to 2024. There is no `python -m pipeline` end-to-end CLI; use the Python workflow above to join, persist, and export records.
+The election command reads a local CSV, the registration command reads a JSON array or EAVS CSV (CSV is detected by the `.csv` extension; `--eavs` can force EAVS parsing), and the Census command fetches ACS data using `CENSUS_API_KEY`. EAVS parsing defaults to `State`, `A1a`, `A1b`, `A1c`, and `A1d` columns; `--year` defaults to 2024. There is no `python -m pipeline` end-to-end CLI; use the Python workflow above to join, persist, and export records.
 
 ## Data and analytical rules
 
@@ -136,7 +136,7 @@ pipeline.py               State/year joins, persistence, and allowlisted exports
 ingest/
   elections.py            Election CSV normalization and party aggregation
   census.py               Census ACS request and population calculations
-  voter_reg.py            Normalization of supplied voter-registration rows
+  voter_reg.py            Voter-registration mapping normalization and EAVS CSV parsing
   geography.py            State name/abbreviation/FIPS normalization
 tests/                    Unit and integration-style tests
 docs/

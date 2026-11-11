@@ -1,6 +1,7 @@
 import json
 import sys
 
+import pandas as pd
 import pytest
 
 import ingest.voter_reg as voter_reg
@@ -214,3 +215,30 @@ def test_registration_cli_rejects_non_object_array_entries(tmp_path, monkeypatch
 
     assert exc_info.value.code == 2
     assert "JSON input must be an array of registration objects." in capsys.readouterr().err
+
+
+def test_eavs_csv_parser_aggregates_by_state_and_preserves_uncollected_counts(tmp_path) -> None:
+    input_path = tmp_path / "eavs.csv"
+    input_path.write_text(
+        "State,A1a,A1b,A1c,A1d\nAlabama,100,30,40,30\nAlabama,50,20,10,20\nAlaska,200,,,\nUnknown,25,10,10,5\n",
+        encoding="utf-8",
+    )
+
+    records = voter_reg.parse_eavs_csv(str(input_path), year=2024)
+
+    records_by_fips = records.set_index("state_fips")
+    assert set(records_by_fips.index) == {"01", "02"}
+
+    alaska = records_by_fips.loc["02"]
+    assert alaska["year"] == 2024
+    assert alaska["registered_voters"] == 200
+    assert pd.isna(alaska["republican_registrants"])
+    assert pd.isna(alaska["democrat_registrants"])
+    assert pd.isna(alaska["other_registrants"])
+
+    alabama = records_by_fips.loc["01"]
+    assert alabama["year"] == 2024
+    assert alabama["registered_voters"] == 150
+    assert alabama["republican_registrants"] == 50
+    assert alabama["democrat_registrants"] == 50
+    assert alabama["other_registrants"] == 50
