@@ -12,6 +12,7 @@ dependencies = [
     "pyarrow>=18.0.0",
     "pydantic>=2.7.0",
     "pydantic-settings>=2.2.0",
+    "pytest-cov>=7.1.0",
     "sqlalchemy>=2.0.0",
 ]
 # Application project, not a package library
