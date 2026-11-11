@@ -13,7 +13,7 @@ Data pipeline for ingestion, normalization, cross-table joining, and export of U
 2. **Data Neutrality & Uncompromising Standardization**
    - Candidate party affiliations must be deterministically mapped and standardized (e.g., `GOP`/`REP` $\to$ `REPUBLICAN`) across disparate sources.
    - States with open registration (where party affiliation is uncollected) must preserve party breakdown totals as explicit `NULL` values rather than defaulting to `0`.
-   - Cross-table merges on `(state_fips, year)` must maintain exact mathematical parity across vote totals, demographic age brackets, and registration records.
+   - Cross-table joins use the complete `(state_fips, year)` key. Vote totals, demographic estimates, and registration counts are distinct measures; do not assert mathematical parity between them.
 
 3. **Strict Test-Driven Development (TDD) & Non-Performative Testing**
    - Write failing unit/integration tests **before** writing implementation code (Red $\to$ Green $\to$ Refactor).
@@ -44,12 +44,11 @@ Dependencies are declared in `pyproject.toml` (`pandas`, `pydantic`, `pydantic-s
 | `uv run python -m ingest.elections` | `--file` / `-f` (path, required) | Ingests and normalizes raw election CSV data (House, Senate, Governor), aggregating party totals. |
 | `uv run python -m ingest.census` | `--year` / `-y` (int, default: 2024) | Fetches state total and working-age population statistics from the Census ACS 5-Year API using `CENSUS_API_KEY`. |
 | `uv run python -m ingest.voter_reg` | `--file` / `-f` (path, required) | Parses and normalizes a JSON file of state-level voter registration counts & party breakdowns. |
-| `uv run python -m pipeline` | — | Executes full pipeline driver: ingest, join on (`state_fips`, `year`), load to PostgreSQL, and export CSV/Parquet. |
 | `uv run ruff check .` | — | Lint verification using Ruff. |
 | `uv run ruff format --check .` | — | Formatting check. |
 | `uv run ruff check --fix .` | — | Apply automatic lint fixes — run before committing. |
 | `uv run pytest` | — | Run the complete TDD test suite. |
-| `uv run pytest --cov=src` | — | Run test suite with line and branch coverage report. |
+| `uv run pytest --cov=config --cov=ingest --cov=models --cov=pipeline` | — | Run the test suite with coverage for the project modules. |
 
 ---
 
@@ -82,7 +81,7 @@ Dependencies are declared in `pyproject.toml` (`pandas`, `pydantic`, `pydantic-s
 | `ingest/elections.py` | Ingests MEDSL / FEC raw CSV data, cleans party labels, aggregates candidate vote counts by race/party, and provides a standalone CLI parser. |
 | `ingest/census.py` | Queries U.S. Census ACS API for total population (`B01001_001E`) and working-age populations (18–64 / 18+), providing a standalone CLI parser. |
 | `ingest/voter_reg.py` | Parses state-level voter registration statistics, maps party-affiliated vs. open-registration states, and provides a standalone CLI parser. |
-| `pipeline.py` | Single entry point for dataset joining on (`state_fips`, `year`), PostgreSQL persistence, and sanitized file export. |
+| `pipeline.py` | Functions for joining datasets on (`state_fips`, `year`), PostgreSQL persistence, and allowlisted file export; there is no `python -m pipeline` CLI. |
 | `tests/` | Comprehensive test suite mirroring module structure under TDD principles. |
 
 ---

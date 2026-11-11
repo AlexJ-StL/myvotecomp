@@ -92,9 +92,21 @@ print(joined.head())
 
 For individual function signatures and source-field details, see [Data contracts and methodology](docs/data-contracts.md).
 
+### Run an individual ingestion CLI
+
+Each ingestion module can also be run directly. These commands normalize or fetch the indicated input and print a short sample; they do not persist records or run the complete join/export pipeline.
+
+```bash
+uv run python -m ingest.elections --file data/raw/elections.csv
+uv run python -m ingest.census --year 2024
+uv run python -m ingest.voter_reg --file data/raw/voter_registration.json
+```
+
+The election command reads a local CSV, the registration command reads a JSON array of record objects, and the Census command fetches ACS data using `CENSUS_API_KEY`. The Census year defaults to 2024. There is no `python -m pipeline` end-to-end CLI; use the Python workflow above to join, persist, and export records.
+
 ## Data and analytical rules
 
-- Geographic keys are normalized to two-character Census FIPS strings (for example, Alabama is `"01"`). State names, USPS abbreviations, and numeric FIPS values are accepted.
+- Geographic keys are normalized to two-character Census FIPS strings (for example, Alabama is `"01"`). Recognized state and territory names, USPS abbreviations, and numeric FIPS values are accepted; numeric values are zero-padded, and unknown or unsupported FIPS codes are rejected.
 - Candidate party labels such as `GOP`/`REP` and `DEM`/`DFL` are normalized. Unrecognized labels map to `INDEPENDENT_OTHER`; the source label and candidate identity are not retained in the aggregated vote records.
 - ACS population totals come from `B01001_001E`; the age-specific ACS counts are summed to calculate the age 18–64 and age 18+ measures.
 - When a state does not collect registration by party, the party counts remain null, not zero. A zero means a collected count of zero; `NULL` means unavailable or uncollected.

@@ -8,7 +8,7 @@ All normalized records carry:
 
 | Field | Type / rule | Meaning |
 | --- | --- | --- |
-| `state_fips` | String of exactly two digits | Census state or territory FIPS code; leading zeroes are preserved. The normalizer accepts FIPS values, USPS abbreviations, and recognized names. |
+| `state_fips` | String of exactly two digits | Census state or territory FIPS code; leading zeroes are preserved. The normalizer accepts recognized state or territory FIPS values, USPS abbreviations, and names. Numeric codes are zero-padded; unknown or unsupported codes raise an error. |
 | `year` | Non-negative integer | Year associated with the source record. Use the source's documented reference year; the pipeline does not convert between election, survey, or ACS reference years. |
 
 Every join uses both key fields: `(state_fips, year)`. Matching on state alone is deliberately not used.

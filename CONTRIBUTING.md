@@ -46,4 +46,4 @@ If formatting is needed, run `uv run ruff format .` and rerun the checks. Tests 
 
 ## Current workflow boundary
 
-The ingestion modules expose Python functions; there are no supported `python -m ingest.*` or `python -m pipeline` commands at this time. The election and registration source acquisition/parsing stages must be provided by the caller. Avoid documenting a new CLI command unless one is implemented and tested.
+The ingestion modules support individual `python -m ingest.elections`, `python -m ingest.census`, and `python -m ingest.voter_reg` commands. These normalize a local election CSV, fetch Census ACS records, or normalize a local registration JSON file, respectively; they print a short sample and do not persist records or run the full join/export workflow. There is no `python -m pipeline` command. Election and registration files must be obtained and prepared by the caller; the repository does not download those sources. Keep command documentation aligned with tested module entry points.
