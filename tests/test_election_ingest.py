@@ -32,53 +32,15 @@ def test_party_aliases_are_normalized_into_three_groups() -> None:
 
 def test_candidate_vote_csv_aggregates_by_state_race_year_and_party() -> None:
     votes = process_election_csv(StringIO(ELECTION_CSV))
-    indexed = {
-        (vote.state_fips, vote.year, vote.office, vote.district, vote.party): vote
-        for vote in votes
-    }
+    indexed = {(vote.state_fips, vote.year, vote.office, vote.district, vote.party): vote for vote in votes}
 
-    assert (
-        indexed[
-            ("01", 2020, ElectionOffice.HOUSE, "1", VoteParty.REPUBLICAN)
-        ].candidate_votes
-        == 125
-    )
-    assert (
-        indexed[
-            ("01", 2020, ElectionOffice.HOUSE, "1", VoteParty.DEMOCRAT)
-        ].candidate_votes
-        == 200
-    )
-    assert (
-        indexed[
-            ("01", 2020, ElectionOffice.HOUSE, "1", VoteParty.INDEPENDENT_OTHER)
-        ].candidate_votes
-        == 25
-    )
-    assert (
-        indexed[
-            ("28", 2022, ElectionOffice.GOVERNOR, "", VoteParty.REPUBLICAN)
-        ].candidate_votes
-        == 350
-    )
-    assert (
-        indexed[
-            ("28", 2022, ElectionOffice.GOVERNOR, "", VoteParty.DEMOCRAT)
-        ].candidate_votes
-        == 350
-    )
-    assert (
-        indexed[
-            ("01", 2024, ElectionOffice.SENATE, "", VoteParty.REPUBLICAN)
-        ].candidate_votes
-        == 400
-    )
-    assert (
-        indexed[
-            ("01", 2024, ElectionOffice.SENATE, "", VoteParty.DEMOCRAT)
-        ].candidate_votes
-        == 500
-    )
+    assert indexed[("01", 2020, ElectionOffice.HOUSE, "1", VoteParty.REPUBLICAN)].candidate_votes == 125
+    assert indexed[("01", 2020, ElectionOffice.HOUSE, "1", VoteParty.DEMOCRAT)].candidate_votes == 200
+    assert indexed[("01", 2020, ElectionOffice.HOUSE, "1", VoteParty.INDEPENDENT_OTHER)].candidate_votes == 25
+    assert indexed[("28", 2022, ElectionOffice.GOVERNOR, "", VoteParty.REPUBLICAN)].candidate_votes == 350
+    assert indexed[("28", 2022, ElectionOffice.GOVERNOR, "", VoteParty.DEMOCRAT)].candidate_votes == 350
+    assert indexed[("01", 2024, ElectionOffice.SENATE, "", VoteParty.REPUBLICAN)].candidate_votes == 400
+    assert indexed[("01", 2024, ElectionOffice.SENATE, "", VoteParty.DEMOCRAT)].candidate_votes == 500
 
     assert sum(vote.candidate_votes for vote in votes if vote.year == 2020) == 350
     assert sum(vote.candidate_votes for vote in votes if vote.year == 2022) == 710
@@ -109,9 +71,7 @@ def test_candidate_vote_csv_ignores_unrequested_offices() -> None:
     ],
 )
 def test_election_ingest_rejects_invalid_candidate_vote_counts(value, message) -> None:
-    source = StringIO(
-        f"year,state,office,party,candidatevotes\n2024,AL,GOVERNOR,REP,{value}\n"
-    )
+    source = StringIO(f"year,state,office,party,candidatevotes\n2024,AL,GOVERNOR,REP,{value}\n")
 
     with pytest.raises(ValueError, match=message):
         process_election_csv(source)

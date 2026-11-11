@@ -12,10 +12,7 @@ from models import VoterRegistrationRecordData
 
 
 def _normalized_row(row: Mapping[str, object]) -> dict[str, object]:
-    return {
-        str(key).strip().lower().replace(" ", "_").replace("-", "_"): value
-        for key, value in row.items()
-    }
+    return {str(key).strip().lower().replace(" ", "_").replace("-", "_"): value for key, value in row.items()}
 
 
 def _first_value(row: Mapping[str, object], *names: str) -> object | None:
@@ -25,9 +22,7 @@ def _first_value(row: Mapping[str, object], *names: str) -> object | None:
     return None
 
 
-def _parse_count(
-    value: object | None, label: str, required: bool = False
-) -> int | None:
+def _parse_count(value: object | None, label: str, required: bool = False) -> int | None:
     if value is None or not str(value).strip():
         if required:
             raise ValueError(f"Registration data is missing {label}")
@@ -93,9 +88,7 @@ def normalize_registration_records(
                 "republican_registrants",
             ),
             "democrat_registrants": _parse_count(
-                _first_value(
-                    row, "democrat_registrants", "democrat", "dem", "democratic"
-                ),
+                _first_value(row, "democrat_registrants", "democrat", "dem", "democratic"),
                 "democrat_registrants",
             ),
             "other_registrants": _parse_count(
@@ -129,9 +122,7 @@ def normalize_registration_records(
 
 def main() -> None:
     """CLI entry point for normalizing voter registration inputs."""
-    parser = argparse.ArgumentParser(
-        description="Normalize voter registration JSON records."
-    )
+    parser = argparse.ArgumentParser(description="Normalize voter registration JSON records.")
     parser.add_argument(
         "--file",
         "-f",
@@ -149,9 +140,7 @@ def main() -> None:
     with file_path.open(encoding="utf-8") as file:
         raw_records = json.load(file)
 
-    if not isinstance(raw_records, list) or any(
-        not isinstance(record, dict) for record in raw_records
-    ):
+    if not isinstance(raw_records, list) or any(not isinstance(record, dict) for record in raw_records):
         parser.error("JSON input must be an array of registration objects.")
 
     print(f"Normalizing voter registration data from: {file_path}...")

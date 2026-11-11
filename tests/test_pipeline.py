@@ -136,9 +136,7 @@ def test_run_pipeline_persists_records_and_exports_sanitized_csv_and_parquet(
         assert len(session.scalars(select(CandidateVote)).all()) == 2
         assert len(session.scalars(select(DemographicRecord)).all()) == 3
         persisted_registration = session.scalars(
-            select(VoterRegistrationRecord).where(
-                VoterRegistrationRecord.state_fips == "01"
-            )
+            select(VoterRegistrationRecord).where(VoterRegistrationRecord.state_fips == "01")
         ).one()
         assert persisted_registration.republican_registrants is None
         assert persisted_registration.democrat_registrants is None

@@ -41,9 +41,7 @@ REGISTRATION_COLUMNS = (
     "other_registrants",
 )
 EXPORT_COLUMNS = VOTE_COLUMNS + tuple(
-    column
-    for column in DEMOGRAPHIC_COLUMNS + REGISTRATION_COLUMNS
-    if column not in {"state_fips", "year"}
+    column for column in DEMOGRAPHIC_COLUMNS + REGISTRATION_COLUMNS if column not in {"state_fips", "year"}
 )
 
 
@@ -87,17 +85,9 @@ def persist_records(
 ) -> None:
     """Persist all normalized source records atomically in one transaction."""
     with Session(engine) as session, session.begin():
-        session.add_all(
-            CandidateVote(**record.model_dump(mode="json")) for record in votes
-        )
-        session.add_all(
-            DemographicRecord(**record.model_dump(mode="json"))
-            for record in demographics
-        )
-        session.add_all(
-            VoterRegistrationRecord(**record.model_dump(mode="json"))
-            for record in registrations
-        )
+        session.add_all(CandidateVote(**record.model_dump(mode="json")) for record in votes)
+        session.add_all(DemographicRecord(**record.model_dump(mode="json")) for record in demographics)
+        session.add_all(VoterRegistrationRecord(**record.model_dump(mode="json")) for record in registrations)
 
 
 def export_dataset(data: pd.DataFrame, destination: str | Path) -> Path:

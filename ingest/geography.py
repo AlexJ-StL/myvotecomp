@@ -60,9 +60,7 @@ _STATES = {
     "PR": ("72", "Puerto Rico"),
     "VI": ("78", "U.S. Virgin Islands"),
 }
-_STATE_NAMES = {
-    re.sub(r"[^A-Z0-9]", "", name.upper()): fips for fips, name in _STATES.values()
-}
+_STATE_NAMES = {re.sub(r"[^A-Z0-9]", "", name.upper()): fips for fips, name in _STATES.values()}
 _STATE_CODES = {code: values[0] for code, values in _STATES.items()}
 _STATE_FIPS_CODES = frozenset(fips for fips, _name in _STATES.values())
 

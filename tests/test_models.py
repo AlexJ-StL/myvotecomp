@@ -100,9 +100,7 @@ def test_demographic_populations_must_be_consistently_ordered() -> None:
             population_18_plus=80,
         )
 
-    with pytest.raises(
-        ValidationError, match=r"population age 18\+ cannot exceed total"
-    ):
+    with pytest.raises(ValidationError, match=r"population age 18\+ cannot exceed total"):
         DemographicRecordData(
             state_fips="01",
             year=2024,

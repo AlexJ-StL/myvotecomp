@@ -115,15 +115,9 @@ class DemographicRecord(Base):
     __table_args__ = (
         UniqueConstraint("state_fips", "year", name="uq_demographic_state_year"),
         CheckConstraint("length(state_fips) = 2", name="ck_demographic_fips_length"),
-        CheckConstraint(
-            "total_population >= 0", name="ck_demographic_total_nonnegative"
-        ),
-        CheckConstraint(
-            "working_age_18_64 >= 0", name="ck_demographic_working_age_nonnegative"
-        ),
-        CheckConstraint(
-            "population_18_plus >= 0", name="ck_demographic_adult_nonnegative"
-        ),
+        CheckConstraint("total_population >= 0", name="ck_demographic_total_nonnegative"),
+        CheckConstraint("working_age_18_64 >= 0", name="ck_demographic_working_age_nonnegative"),
+        CheckConstraint("population_18_plus >= 0", name="ck_demographic_adult_nonnegative"),
         CheckConstraint(
             "working_age_18_64 <= population_18_plus",
             name="ck_demographic_age_bracket_order",
@@ -149,9 +143,7 @@ class VoterRegistrationRecord(Base):
     __table_args__ = (
         UniqueConstraint("state_fips", "year", name="uq_registration_state_year"),
         CheckConstraint("length(state_fips) = 2", name="ck_registration_fips_length"),
-        CheckConstraint(
-            "registered_voters >= 0", name="ck_registration_total_nonnegative"
-        ),
+        CheckConstraint("registered_voters >= 0", name="ck_registration_total_nonnegative"),
         CheckConstraint(
             "republican_registrants IS NULL OR republican_registrants >= 0",
             name="ck_registration_republican_nonnegative",

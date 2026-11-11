@@ -30,9 +30,7 @@ def test_partisan_registration_counts_are_parsed_and_standardized() -> None:
     assert record.democrat_registrants == 350_000
     assert record.other_registrants == 250_000
     assert (
-        record.republican_registrants
-        + record.democrat_registrants
-        + record.other_registrants
+        record.republican_registrants + record.democrat_registrants + record.other_registrants
         == record.registered_voters
     )
 
@@ -94,16 +92,11 @@ def test_cli_rejects_json_that_is_not_an_array(tmp_path, monkeypatch, capsys) ->
         main()
 
     assert exc_info.value.code == 2
-    assert (
-        "JSON input must be an array of registration objects."
-        in capsys.readouterr().err
-    )
+    assert "JSON input must be an array of registration objects." in capsys.readouterr().err
 
 
 def test_missing_party_breakdown_is_not_coerced_to_zero() -> None:
-    record = normalize_registration_records(
-        [{"state": "Alabama", "year": 2024, "registered_voters": 12}]
-    )[0]
+    record = normalize_registration_records([{"state": "Alabama", "year": 2024, "registered_voters": 12}])[0]
 
     assert record.republican_registrants is None
     assert record.democrat_registrants is None
@@ -121,9 +114,7 @@ def test_missing_party_breakdown_is_not_coerced_to_zero() -> None:
 )
 def test_registration_counts_reject_invalid_numeric_values(value, message) -> None:
     with pytest.raises(ValueError, match=message):
-        normalize_registration_records(
-            [{"state": "Alabama", "year": 2024, "registered_voters": value}]
-        )
+        normalize_registration_records([{"state": "Alabama", "year": 2024, "registered_voters": value}])
 
 
 def test_registration_requires_total_and_recognizable_party_collection_status() -> None:
@@ -202,9 +193,7 @@ def test_registration_aliases_open_registration_type() -> None:
     assert records[0].other_registrants is None
 
 
-def test_registration_cli_reports_nonexistent_file(
-    monkeypatch, capsys, tmp_path
-) -> None:
+def test_registration_cli_reports_nonexistent_file(monkeypatch, capsys, tmp_path) -> None:
     missing_path = tmp_path / "missing.json"
     monkeypatch.setattr(sys, "argv", ["voter_reg", "--file", str(missing_path)])
 
@@ -215,20 +204,13 @@ def test_registration_cli_reports_nonexistent_file(
     assert f"Error: File '{missing_path}' does not exist." in capsys.readouterr().err
 
 
-def test_registration_cli_rejects_non_object_array_entries(
-    tmp_path, monkeypatch, capsys
-) -> None:
+def test_registration_cli_rejects_non_object_array_entries(tmp_path, monkeypatch, capsys) -> None:
     input_path = tmp_path / "registration.json"
-    input_path.write_text(
-        json.dumps([{"state": "AL"}, "not-an-object"]), encoding="utf-8"
-    )
+    input_path.write_text(json.dumps([{"state": "AL"}, "not-an-object"]), encoding="utf-8")
     monkeypatch.setattr(sys, "argv", ["voter_reg", "--file", str(input_path)])
 
     with pytest.raises(SystemExit) as exc_info:
         voter_reg.main()
 
     assert exc_info.value.code == 2
-    assert (
-        "JSON input must be an array of registration objects."
-        in capsys.readouterr().err
-    )
+    assert "JSON input must be an array of registration objects." in capsys.readouterr().err

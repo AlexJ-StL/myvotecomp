@@ -94,9 +94,7 @@ def test_census_rejects_invalid_headers(payload: object, message: str) -> None:
         ),
     ],
 )
-def test_census_rejects_malformed_rows_and_population_counts(
-    mutate, message: str
-) -> None:
+def test_census_rejects_malformed_rows_and_population_counts(mutate, message: str) -> None:
     payload = census_response()
     mutate(payload)
 
@@ -118,9 +116,7 @@ def test_census_fetch_owns_and_closes_client_when_none_is_supplied(monkeypatch) 
         def __exit__(self, *_exc_info) -> None:
             state["closed"] = True
 
-        def get(
-            self, url: str, *, params: dict[str, str | list[str]]
-        ) -> httpx.Response:
+        def get(self, url: str, *, params: dict[str, str | list[str]]) -> httpx.Response:
             request = httpx.Request("GET", url, params=params)
             return httpx.Response(200, json=census_response(), request=request)
 
