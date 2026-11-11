@@ -2,6 +2,8 @@
 
 Data pipeline for ingestion, normalization, cross-table joining, and export of U.S. election candidate vote counts (House, Senate, Governor), state demographics (Census ACS population & working-age), and state voter registration metrics (EAC EAVS).
 
+---
+
 ## Analytical Integrity & Engineering Philosophy
 
 1. **Zero-Trust Security Hygiene & Privacy Preservation**
